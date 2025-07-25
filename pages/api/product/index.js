@@ -1,29 +1,27 @@
-import mongoose from "mongoose";
-import Product from "../../../models/Product";
+import connectDB from "@/lib/db";
+import Product from "@/models/Product";
 
-const handler = async (req, res) => {
-  const { method } = req;
-  const uri = process.env.MONGODB_URI;
+export default async function handler(req, res) {
+  await connectDB();
 
-  await mongoose.connect(uri);
-
-  if (method === "GET") {
-    const products = await Product.find({});
-    return res.status(200).json(products);
+  if (req.method === "GET") {
+    try {
+      const products = await Product.find();
+      return res.status(200).json(products);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch products" });
+    }
   }
 
-  if (method === "POST") {
+  if (req.method === "POST") {
     try {
-      const product = new Product(req.body);
-      await product.save();
+      const product = await Product.create(req.body);
       return res.status(201).json(product);
     } catch (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: "Failed to create product" });
     }
   }
 
   res.setHeader("Allow", ["GET", "POST"]);
-  res.status(405).end(`Method ${method} Not Allowed`);
-};
-
-export default handler;
+  res.status(405).end(`Method ${req.method} Not Allowed`);
+}
